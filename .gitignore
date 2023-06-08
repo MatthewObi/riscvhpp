@@ -30,3 +30,21 @@
 *.exe
 *.out
 *.app
+
+# VS Code
+.vscode
+
+# Python
+*.pyc
+__pycache__
+
+# Misc testing stuff
+test/
+*.elf
+example/
+
+# Generate or copied files
+tools/constants.py
+encoding.out.h
+src/riscv.hpp
+instr_dict.yaml
