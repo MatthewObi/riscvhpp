@@ -79,11 +79,26 @@ macros = {
     'fsgnjx_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], false, true);\npc += 4;\nreturn OK;',
     'fadd_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] + (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
     'fmul_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] * (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
+    'fdiv_s': 'if((float)freg[rs2(ins)] == 0.f) {\n    return DIV_BY_ZERO;\n}\nfreg[rd(ins)] = (float)freg[rs1(ins)] / (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
     'fcvt_w_s': 'reg[rd(ins)] = (sreg_t)(int32_t)freg[rs1(ins)];\npc += 4;\nreturn OK;',
     'fcvt_s_w': 'freg[rd(ins)] = (float)reg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'csrrw': 'ureg_t value = reg[rs1(ins)];\nif(rd(ins) != 0) reg[rd(ins)] = load_csr(csr(ins));\nstore_csr(csr(ins), value);\npc += 4;\nreturn OK;',
+    'csrrs': 'ureg_t value = reg[rs1(ins)];\nreg[rd(ins)] = load_csr(csr(ins));\nif(rs1(ins) != 0) store_csr(csr(ins), reg[rd(ins)] | value);\npc += 4;\nreturn OK;',
+    'csrrc': 'ureg_t value = reg[rs1(ins)];\nreg[rd(ins)] = load_csr(csr(ins));\nif(rs1(ins) != 0) store_csr(csr(ins), reg[rd(ins)] & ~value);\npc += 4;\nreturn OK;',
+    'csrrwi': 'ureg_t value = (ureg_t)zimm(ins);\nif(rd(ins) != 0) reg[rd(ins)] = load_csr(csr(ins));\nstore_csr(csr(ins), value);\npc += 4;\nreturn OK;',
+    'csrrsi': 'ureg_t value = (ureg_t)zimm(ins);\nreg[rd(ins)] = load_csr(csr(ins));\nif(value != 0) store_csr(csr(ins), reg[rd(ins)] | value);\npc += 4;\nreturn OK;',
+    'csrrci': 'ureg_t value = (ureg_t)zimm(ins);\nreg[rd(ins)] = load_csr(csr(ins));\nif(value != 0) store_csr(csr(ins), reg[rd(ins)] & ~value);\npc += 4;\nreturn OK;',
     'ecall' : 'pc += 4;\nreturn ECALL;',
     'ebreak' : 'pc += 4;\nreturn EBREAK;'
 }
+
+csr_read_macros = {
+    'time': 'csrs[CSR_TIME] = time(NULL);\nreturn (ureg_t)csrs[CSR_TIME];'
+}
+
+read_only_csrs = ['time']
+
+csr_write_macros = {}
 
 print_macros = {
     'lw': ([
@@ -133,8 +148,10 @@ print_macros = {
         ('imm12(ins) == 0', 'mv {}, {}', 'rd', 'rs1'),
         ('rs1(ins) == 0', 'li {}, {}', 'rd', 'imm12')], 
         'addi {}, {}, {}', 'rd', 'rs1', 'imm12'),
-    'andi': ([], 
-        'andi {}, {}, {}', 'rd', 'rs1', 'imm12'),
+    'subi': ([], 'subi {}, {}, {}', 'rd', 'rs1', 'imm12'),
+    'andi': ([], 'andi {}, {}, {}', 'rd', 'rs1', 'imm12'),
+    'ori': ([], 'ori {}, {}, {}', 'rd', 'rs1', 'imm12'),
+    'xori': ([], 'xori {}, {}, {}', 'rd', 'rs1', 'imm12'),
     'add': ([
         ('rs1(ins) == 0', 'mv {}, {}', 'rd', 'rs2'),
         ('rs2(ins) == 0', 'mv {}, {}', 'rd', 'rs1')], 
@@ -181,6 +198,7 @@ print_macros = {
     'fsqrt_s': ([], 'fsqrt.s {}, {}', 'frd', 'frs1'),
     'fadd_s': ([], 'fadd.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
     'fmul_s': ([], 'fmul.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fdiv_s': ([], 'fdiv.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
     'flt_s': ([], 'flt.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
     'feq_s': ([], 'feq.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
     'fle_s': ([], 'fle.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
@@ -195,6 +213,25 @@ print_macros = {
         'fsgnjx.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
     'fcvt_w_s': ([], 'fcvt.w.s {}, {}, {}', 'rd', 'frs1', 'rm'),
     'fcvt_s_w': ([], 'fcvt.s.w {}, {}, {}', 'frd', 'rs1', 'rm'),
+    'csrrw': ([
+        ('rd(ins) == 0', 'csrw {}, {}', 'csr', 'rs1')], 
+        'csrrw {}, {}, {}', 'rd', 'csr', 'rs1'),
+    'csrrs': ([
+        ('rs1(ins) == 0', 'csrr {}, {}', 'rd', 'csr'),
+        ('rd(ins) == 0', 'csrs {}, {}', 'csr', 'rs1')], 
+        'csrrs {}, {}, {}', 'rd', 'csr', 'rs1'),
+    'csrrc': ([
+        ('rd(ins) == 0', 'csrc {}, {}', 'csr', 'rs1')], 
+        'csrrc {}, {}, {}', 'rd', 'csr', 'rs1'),
+    'csrrwi': ([
+        ('rd(ins) == 0', 'csrwi {}, {}', 'csr', 'zimm')], 
+        'csrrwi {}, {}, {}', 'rd', 'csr', 'zimm'),
+    'csrrsi': ([
+        ('rd(ins) == 0', 'csrsi {}, {}', 'csr', 'zimm')], 
+        'csrrsi {}, {}, {}', 'rd', 'csr', 'zimm'),
+    'csrrci': ([
+        ('rd(ins) == 0', 'csrci {}, {}', 'csr', 'zimm')], 
+        'csrrci {}, {}, {}', 'rd', 'csr', 'zimm'),
     'ecall': ([], 'ecall {}', 'a7')
 }
 
@@ -207,6 +244,9 @@ def gen_print_macro(k):
             for vf in cond[2:]:
                 if vf == 'rm':
                     format_vars.append('rm_name[rm(ins)]')
+                    format_specs.append('%s')
+                elif vf == 'csr':
+                    format_vars.append('csr_name[csr(ins)]')
                     format_specs.append('%s')
                 elif vf.startswith('r') or vf.startswith('c_r'):
                     format_vars.append('reg_name[{}(ins)]'.format(vf))
@@ -236,6 +276,9 @@ def gen_print_macro(k):
         for vf in print_macros[k][2:]:
             if vf == 'rm':
                 format_vars.append('rm_name[rm(ins)]')
+                format_specs.append('%s')
+            elif vf == 'csr':
+                format_vars.append('csr_name[csr(ins)]')
                 format_specs.append('%s')
             elif vf.startswith('r') or vf.startswith('c_r'):
                 format_vars.append('reg_name[{}(ins)]'.format(vf))
@@ -270,11 +313,26 @@ hstr = '''// This file was generated using riscvhpp (https://github.com/MatthewO
 #include <stdio.h>
 #include <memory.h>
 #include <math.h>
+#include <time.h>
 #include "encoding.out.h"
 
 #define REG_RA 1
 #define REG_SP 2
 #define REG_A(_n) (10 + _n)
+
+#define LOG_MEM_LOAD 0
+#if LOG_MEM_LOAD
+#define log_load(address, size) printf("Loading %lld-bit value from address 0x%08llx.\\n", size, address);
+#else
+#define log_load(address, size) 
+#endif
+
+#define LOG_MEM_STORE 0
+#if LOG_MEM_STORE
+#define log_store(address, size, value) printf("Storing %lld-bit value %lld to address 0x%08llx.\\n", size, value, address);
+#else
+#define log_store(address, size, value) 
+#endif
 
 namespace riscv {
 struct DRAM
@@ -520,6 +578,24 @@ float sgnj32(float x, float y, bool neg, bool xr) {
 }
 '''
 
+csr_name_str = '''const char csr_name[][16] = {
+'''
+
+csr_strings = ['0x{:03x}'.format(i) for i in range(0x1000)]
+for el in csrs:
+    csr_strings[el[0]] = el[1]
+
+for el in csrs32:
+    csr_strings[el[0]] = el[1]
+
+for s in csr_strings:
+    if s.startswith('0x'):
+        csr_name_str += '"csr{}",'.format(s)
+    else:
+        csr_name_str += '\n    "{}",'.format(s)
+
+csr_name_str += '\n};\n'
+
 class_str = '''
 enum: uint64_t {
     ISA_BASE_32I = (1ull << 62ull),
@@ -613,6 +689,7 @@ struct CPU
         ECALL,
         EBREAK,
         END_OF_PROG,
+        DIV_BY_ZERO,
         MISC_ERR
     };
 
@@ -620,18 +697,27 @@ struct CPU
     uint64_t pc;
 
     freg_t freg[32];
-    uint64_t csr[4096];
+    uint64_t csrs[4096];
+    
+    enum {
+        PRIV_USER,
+        PRIV_SUPERVISOR,
+        PRIV_HYPERVISOR,
+        PRIV_MACHINE
+    };
+
+    int priv = PRIV_USER;
 
     Bus bus;
 
     uint32_t fetch() { auto data = (uint32_t)bus.load(pc, 32); /* printf("Fetched %u from address 0x%08llX.\\n", data, pc); */ return data; }
 
     uint64_t load(uint64_t address, uint64_t size) { 
-        printf("Loading %lld-bit value from address 0x%08llx.\\n", size, address);
+        log_load(address, size);
         return bus.load(address, size); 
     }
     void store(uint64_t address, uint64_t size, uint64_t value) { 
-        printf("Storing %lld-bit value %lld to address 0x%08llx.\\n", size, value, address);
+        log_store(address, size, value);
         return bus.store(address, size, value); 
     }
 
@@ -639,6 +725,49 @@ struct CPU
         pc = 0x80000000;
         reg[REG_SP] = pc + 0x10000;
         reg[0] = 0;
+    }
+'''
+
+csr_str = '''
+    ureg_t load_csr(uint32_t address) { 
+        switch(address & 0xfff) {
+'''
+
+for k, v in csr_read_macros.items():
+    csr_str += (spc * 3) + 'case CSR_{}: \n'.format(k.upper())
+    for ln in v.splitlines():
+        csr_str += (spc * 4) + '{}\n'.format(ln)
+
+csr_str += '''            default: 
+                if constexpr(IsaData<isa>::xlen() == 32) 
+                    return (ureg_t)(csrs[address & 0xfff] & 0xffffffff); 
+                else 
+                    return (ureg_t)csrs[address & 0xfff];
+        }
+    }
+    
+    void store_csr(uint32_t address, uint64_t value) {
+        switch(address & 0xfff) {
+'''
+
+for k in read_only_csrs:
+    csr_str += (spc * 3) + 'case CSR_{}: \n'.format(k.upper())
+
+csr_str += (spc * 4) + 'return;\n'
+
+for k, v in csr_write_macros.items():
+    csr_str += (spc * 3) + 'case CSR_{}: \n'.format(k.upper())
+    for ln in v.splitlines():
+        csr_str += (spc * 4) + '{}\n'.format(ln)
+    csr_str += (spc * 4) + 'return;\n'
+
+csr_str += '''            default: 
+                if constexpr(IsaData<isa>::xlen() == 32) 
+                    csrs[address & 0xfff] = (csrs[address & 0xfff] & ~(uint64_t)0xffffffff) | (value & 0xffffffff); 
+                else 
+                    csrs[address & 0xfff] = value; 
+                return;
+        }
     }
 
 '''
@@ -728,7 +857,7 @@ for k, v in arg_lut.items():
 for pair in comb_args:
     hstr += 'constexpr uint64_t {}hl({} x) {{ return ({}hi(x) << {}) | {}lo(x); }}\n'.format(pair[0], ('uint16_t' if pair[0].startswith('c_') else 'uint32_t'), pair[0], 0, pair[0])
 
-hstr += class_str
+hstr += csr_name_str + class_str + csr_str
 
 for k, v in x.items():
     if k.startswith('c_'):
