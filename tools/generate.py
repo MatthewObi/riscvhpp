@@ -22,7 +22,9 @@ macros = {
     'srl': 'reg[rd(ins)] = reg[rs1(ins)] >> (reg[rs2(ins)] & 0x1f);\npc += 4;\nreturn OK;',
     'sra': 'reg[rd(ins)] = (sreg_t)reg[rs1(ins)] >> (reg[rs2(ins)] & 0x1f);\npc += 4;\nreturn OK;',
     'addi': 'reg[rd(ins)] = reg[rs1(ins)] + (sreg_t)imm12(ins);\npc += 4;\nreturn OK;',
+    'addiw': 'reg[rd(ins)] = (sreg_t)((int32_t)reg[rs1(ins)] + (int32_t)imm12(ins));\npc += 4;\nreturn OK;',
     'slti': 'reg[rd(ins)] = ((sreg_t)reg[rs1(ins)] < (sreg_t)imm12(ins))? 1: 0;\npc += 4;\nreturn OK;',
+    'sltiu': 'reg[rd(ins)] = (reg[rs1(ins)] < (ureg_t)imm12(ins))? 1: 0;\npc += 4;\nreturn OK;',
     'xori': 'reg[rd(ins)] = reg[rs1(ins)] ^ (sreg_t)imm12(ins);\npc += 4;\nreturn OK;',
     'ori' : 'reg[rd(ins)] = reg[rs1(ins)] | (sreg_t)imm12(ins);\npc += 4;\nreturn OK;',
     'andi': 'reg[rd(ins)] = reg[rs1(ins)] & (sreg_t)imm12(ins);\npc += 4;\nreturn OK;',
@@ -41,18 +43,25 @@ macros = {
     'lhu': 'reg[rd(ins)] = (ureg_t)(uint16_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 16);\npc += 4;\nreturn OK;',
     'lw': 'reg[rd(ins)] = (sreg_t)(int32_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 32);\npc += 4;\nreturn OK;',
     'lwu': 'reg[rd(ins)] = (ureg_t)(uint32_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 32);\npc += 4;\nreturn OK;',
+    'ld': 'reg[rd(ins)] = (sreg_t)(int64_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 32);\npc += 4;\nreturn OK;',
     'sb': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 8, (uint8_t)reg[rs2(ins)]);\npc += 4;\nreturn OK;',
     'sh': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 16, (uint16_t)reg[rs2(ins)]);\npc += 4;\nreturn OK;',
     'sw': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 32, (uint32_t)reg[rs2(ins)]);\npc += 4;\nreturn OK;',
+    'sd': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 64, (uint64_t)reg[rs2(ins)]);\npc += 4;\nreturn OK;',
     'lui': 'reg[rd(ins)] = imm20(ins);\npc += 4;\nreturn OK;',
     'auipc': 'reg[rd(ins)] = (ureg_t)(pc + (sreg_t)imm20(ins));\npc += 4;\nreturn OK;',
     'jal': 'reg[rd(ins)] = pc + 4;\npc = (pc + ((int64_t)jimm20(ins) << 1));\nreturn OK;',
     'jalr': 'reg[rd(ins)] = pc + 4;\npc = (reg[rs1(ins)] + ((int64_t)imm12(ins) << 1));\nreturn OK;',
     'c_lwsp' : 'reg[rd(ins)] = (sreg_t)(int32_t)load(reg[REG_SP] + (ureg_t)c_uimm8sphl(ins), 32);\npc += 2;\nreturn OK;',
+    'c_flwsp' : 'freg[rd(ins)] = bitcast<float>((uint32_t)load(reg[REG_SP] + (ureg_t)c_uimm8sphl(ins), 32));\npc += 2;\nreturn OK;',
     'c_ldsp' : 'reg[rd(ins)] = (sreg_t)(int64_t)load(reg[REG_SP] + (ureg_t)c_uimm9sphl(ins), 32);\npc += 2;\nreturn OK;',
+    'c_fldsp' : 'freg[rd(ins)] = bitcast<double>((uint64_t)load(reg[REG_SP] + (ureg_t)c_uimm9sphl(ins), 64));\npc += 2;\nreturn OK;',
     'c_lw' : 'reg[rd_p(ins)] = (sreg_t)(int32_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32);\npc += 2;\nreturn OK;',
+    'c_ld' : 'reg[rd_p(ins)] = (sreg_t)(int64_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm8hl(ins), 64);\npc += 2;\nreturn OK;',
     'c_sw' : 'store(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32, (uint32_t)reg[rs2_p(ins)]);\npc += 2;\nreturn OK;',
     'c_swsp' : 'store(reg[REG_SP] + (ureg_t)c_uimm8sp_s(ins), 32, (uint32_t)reg[c_rs2(ins)]);\npc += 2;\nreturn OK;',
+    'c_fswsp' : 'store(reg[REG_SP] + (ureg_t)c_uimm8sp_s(ins), 32, bitcast<uint32_t>((float)freg[c_rs2(ins)]));\npc += 2;\nreturn OK;',
+    'c_sdsp' : 'store(reg[REG_SP] + (ureg_t)c_uimm9sp_s(ins), 64, (uint64_t)reg[c_rs2(ins)]);\npc += 2;\nreturn OK;',
     'c_mv' : 'reg[rd(ins)] = reg[c_rs2_n0(ins)];\npc += 2;\nreturn OK;',
     'c_add': 'reg[rd(ins)] += (sreg_t)reg[c_rs2_n0(ins)];\npc += 2;\nreturn OK;',
     'c_addi': 'reg[rd_rs1_n0(ins)] += (sreg_t)c_nzimm6hl(ins);\npc += 2;\nreturn OK;',
@@ -70,16 +79,20 @@ macros = {
     'c_li' : 'reg[rd(ins)] = (sreg_t)c_imm6hl(ins);\npc += 2;\nreturn OK;',
     'c_lui' : 'reg[rd(ins)] = (sreg_t)c_nzimm18hl(ins);\npc += 2;\nreturn OK;',
     'flw': 'freg[rd(ins)] = bitcast<float>((uint32_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 32));\npc += 4;\nreturn OK;',
-    'fsqrt_s': 'freg[rd(ins)] = sqrtf(freg[rs1(ins)]);\npc += 4;\nreturn OK;',
-    'flt_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] < (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
-    'feq_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] == (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
-    'fle_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] <= (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
+    'fsw': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 32, bitcast<uint32_t>((float)freg[rs2(ins)]));\npc += 4;\nreturn OK;',
     'fsgnj_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], false, false);\npc += 4;\nreturn OK;',
     'fsgnjn_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], true, false);\npc += 4;\nreturn OK;',
     'fsgnjx_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], false, true);\npc += 4;\nreturn OK;',
     'fadd_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] + (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
+    'fsub_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] - (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
     'fmul_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] * (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
     'fdiv_s': 'if((float)freg[rs2(ins)] == 0.f) {\n    return DIV_BY_ZERO;\n}\nfreg[rd(ins)] = (float)freg[rs1(ins)] / (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
+    'fsqrt_s': 'freg[rd(ins)] = sqrtf(freg[rs1(ins)]);\npc += 4;\nreturn OK;',
+    'fmin_s': 'freg[rd(ins)] = fminf((float)freg[rs1(ins)], (float)freg[rs2(ins)]);\npc += 4;\nreturn OK;',
+    'fmax_s': 'freg[rd(ins)] = fmaxf((float)freg[rs1(ins)], (float)freg[rs2(ins)]);\npc += 4;\nreturn OK;',
+    'flt_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] < (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
+    'feq_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] == (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
+    'fle_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] <= (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
     'fcvt_w_s': 'reg[rd(ins)] = (sreg_t)(int32_t)freg[rs1(ins)];\npc += 4;\nreturn OK;',
     'fcvt_s_w': 'freg[rd(ins)] = (float)reg[rs1(ins)];\npc += 4;\nreturn OK;',
     'csrrw': 'ureg_t value = reg[rs1(ins)];\nif(rd(ins) != 0) reg[rd(ins)] = load_csr(csr(ins));\nstore_csr(csr(ins), value);\npc += 4;\nreturn OK;',
@@ -101,18 +114,27 @@ read_only_csrs = ['time']
 csr_write_macros = {}
 
 print_macros = {
-    'lw': ([
-        ('imm12(ins) == 0', 'lw {}, [{}]', 'rd', 'rs1')], 
-        'lw {}, [{} + {}]', 'rd', 'rs1', 'imm12'),
-    'lh': ([
-        ('imm12(ins) == 0', 'lh {}, [{}]', 'rd', 'rs1')], 
-        'lh {}, [{} + {}]', 'rd', 'rs1', 'imm12'),
     'lb': ([
         ('imm12(ins) == 0', 'lb {}, [{}]', 'rd', 'rs1')], 
         'lb {}, [{} + {}]', 'rd', 'rs1', 'imm12'),
     'lbu': ([
         ('imm12(ins) == 0', 'lbu {}, [{}]', 'rd', 'rs1')], 
         'lbu {}, [{} + {}]', 'rd', 'rs1', 'imm12'),
+    'lh': ([
+        ('imm12(ins) == 0', 'lh {}, [{}]', 'rd', 'rs1')], 
+        'lh {}, [{} + {}]', 'rd', 'rs1', 'imm12'),
+    'lhu': ([
+        ('imm12(ins) == 0', 'lhu {}, [{}]', 'rd', 'rs1')], 
+        'lhu {}, [{} + {}]', 'rd', 'rs1', 'imm12'),
+    'lw': ([
+        ('imm12(ins) == 0', 'lw {}, [{}]', 'rd', 'rs1')], 
+        'lw {}, [{} + {}]', 'rd', 'rs1', 'imm12'),
+    'lwu': ([
+        ('imm12(ins) == 0', 'lwu {}, [{}]', 'rd', 'rs1')], 
+        'lwu {}, [{} + {}]', 'rd', 'rs1', 'imm12'),
+    'ld': ([
+        ('imm12(ins) == 0', 'ld {}, [{}]', 'rd', 'rs1')], 
+        'ld {}, [{} + {}]', 'rd', 'rs1', 'imm12'),
     'sb': ([
         ('imm12hl(ins) == 0', 'sb [{}], {}', 'rs1', 'rs2')], 
         'sb [{} + {}], {}', 'rs1', 'imm12hl', 'rs2'),
@@ -122,21 +144,41 @@ print_macros = {
     'sw': ([
         ('imm12hl(ins) == 0', 'sw [{}], {}', 'rs1', 'rs2')], 
         'sw [{} + {}], {}', 'rs1', 'imm12hl', 'rs2'),
+    'sd': ([
+        ('imm12hl(ins) == 0', 'sd [{}], {}', 'rs1', 'rs2')], 
+        'sd [{} + {}], {}', 'rs1', 'imm12hl', 'rs2'),
     'c_lw': ([
         ('c_uimm7hl(ins) == 0', 'lw {}, [{}]', 'rd_p', 'rs1_p')], 
         'lw {}, [{} + {}]', 'rd_p', 'rs1_p', 'c_uimm7hl'),
+    'c_flw': ([
+        ('c_uimm7hl(ins) == 0', 'flw {}, [{}]', 'frd_p', 'rs1_p')], 
+        'flw {}, [{} + {}]', 'frd_p', 'rs1_p', 'c_uimm7hl'),
     'c_sw': ([
         ('c_uimm7hl(ins) == 0', 'sw [{}], {}', 'rs1_p', 'rs2_p')], 
         'sw [{} + {}], {}', 'rs1_p', 'c_uimm7hl', 'rs2_p'),
+    'c_fsw': ([
+        ('c_uimm7hl(ins) == 0', 'fsw [{}], {}', 'rs1_p', 'frs2_p')], 
+        'fsw [{} + {}], {}', 'rs1_p', 'c_uimm7hl', 'frs2_p'),
+    'c_lwsp': ([], 'lw {}, [sp + {}]', 'rd', 'c_uimm8sphl'),
+    'c_flwsp': ([], 'flw {}, [sp + {}]', 'frd', 'c_uimm8sphl'),
+    'c_ldsp': ([], 'ld {}, [sp + {}]', 'rd', 'c_uimm9sphl'),
+    'c_fldsp': ([], 'fld {}, [sp + {}]', 'frd', 'c_uimm9sphl'),
     'c_swsp': ([], 'sw [sp + {}], {}', 'c_uimm8sp_s', 'c_rs2'),
+    'c_fswsp': ([], 'fsw [sp + {}], {}', 'c_uimm8sp_s', 'fc_rs2'),
+    'c_sdsp': ([], 'sd [sp + {}], {}', 'c_uimm9sp_s', 'c_rs2'),
+    'c_fsdsp': ([], 'fsd [sp + {}], {}', 'c_uimm9sp_s', 'fc_rs2'),
     'c_addi4spn': ([], 'addi {}, sp, {}', 'rd_p', 'c_nzuimm10'),
     'c_addi16sp': ([], 'addi sp, sp, {}', 'c_nzimm10hl'),
     'c_li': ([], 'li {}, {}', 'rd', 'c_imm6hl'),
     'c_addi': ([], 'addi {}, {}, {}', 'rd_rs1_n0', 'rd_rs1_n0', 'c_nzimm6hl'),
     'c_lui': ([], 'lui {}, {}', 'rd', 'shr c_nzimm18hl'),
+    'c_add': ([], 'add {}, {}, {}', 'rd', 'rd', 'c_rs2_n0'),
     'c_and': ([], 'and {}, {}, {}', 'rd_rs1_p', 'rd_rs1_p', 'rs2_p'),
     'c_or' : ([], 'or {}, {}, {}', 'rd_rs1_p', 'rd_rs1_p', 'rs2_p'),
     'c_xor': ([], 'xor {}, {}, {}', 'rd_rs1_p', 'rd_rs1_p', 'rs2_p'),
+    'c_mv' : ([], 'mv {}, {}', 'rd', 'c_rs2_n0'),
+    'c_beqz' : ([], 'beqz {}, {}', 'rs1_p', 'addr_rel c_bimm9hl'),
+    'c_bnez' : ([], 'bnez {}, {}', 'rs1_p', 'addr_rel c_bimm9hl'),
     'c_jr': ([
         ('c_rs1_n0(ins) == REG_RA', 'ret')], 
         'jr {}', 'c_rs1_n0'),
@@ -151,7 +193,13 @@ print_macros = {
     'subi': ([], 'subi {}, {}, {}', 'rd', 'rs1', 'imm12'),
     'andi': ([], 'andi {}, {}, {}', 'rd', 'rs1', 'imm12'),
     'ori': ([], 'ori {}, {}, {}', 'rd', 'rs1', 'imm12'),
-    'xori': ([], 'xori {}, {}, {}', 'rd', 'rs1', 'imm12'),
+    'xori': ([
+        ('(sreg_t)imm12(ins) == -1', 'not {}, {}', 'rd', 'rs1')], 
+        'xori {}, {}, {}', 'rd', 'rs1', 'imm12'),
+    'slti': ([], 'slti {}, {}, {}', 'rd', 'rs1', 'imm12'),
+    'sltiu': ([
+        ('imm12(ins) == 1', 'seqz {}, {}', 'rd', 'rs1')], 
+        'sltiu {}, {}, {}', 'rd', 'rs1', 'imm12'),
     'add': ([
         ('rs1(ins) == 0', 'mv {}, {}', 'rd', 'rs2'),
         ('rs2(ins) == 0', 'mv {}, {}', 'rd', 'rs1')], 
@@ -165,7 +213,9 @@ print_macros = {
         'or {}, {}, {}', 'rd', 'rs1', 'rs2'),
     'xor': ([], 
         'xor {}, {}, {}', 'rd', 'rs1', 'rs2'),
-    'slt': ([], 
+    'slt': ([
+        ('rs2(ins) == 0', 'sltz {}, {}', 'rd', 'rs1'),
+        ('rs1(ins) == 0', 'sgtz {}, {}', 'rd', 'rs2')], 
         'slt {}, {}, {}', 'rd', 'rs1', 'rs2'),
     'sltu': ([
         ('rs1(ins) == 0', 'snez {}, {}', 'rd', 'rs2')], 
@@ -188,17 +238,27 @@ print_macros = {
     'bne' : ([
         ('rs2(ins) == 0', 'bnez {}, {}', 'rs1', 'addr_rel bimm12hl')], 
         'bne {}, {}, {}', 'rs1', 'rs2', 'addr_rel bimm12hl'),
-    'c_mv' : ([], 'mv {}, {}', 'rd', 'c_rs2_n0'),
-    'c_add': ([], 'add {}, {}, {}', 'rd', 'rd', 'c_rs2_n0'),
-    'c_beqz' : ([], 'beqz {}, {}', 'rs1_p', 'addr_rel c_bimm9hl'),
-    'c_bnez' : ([], 'bnez {}, {}', 'rs1_p', 'addr_rel c_bimm9hl'),
+    'jal': ([
+        ('rd(ins) == 0', 'j {}', 'addr_rel jimm20')], 
+        'jal {}, {}', 'rd', 'addr_rel jimm20'),
+    'jalr': ([
+        ('rd(ins) == 0 && rs1(ins) == 0', 'jr {}', 'addr rs1'),
+        ('rd(ins) == 0', 'jr {}', 'addr_reg_rel rs1 imm12'),
+        ('rs1(ins) == 0', 'jalr {}, {}', 'rd', 'addr rs1')], 
+        'jalr {}, {}', 'rd', 'addr_reg_rel rs1 imm12'),
     'flw': ([
         ('imm12(ins) == 0', 'flw {}, [{}]', 'frd', 'rs1')], 
         'flw {}, [{} + {}]', 'frd', 'rs1', 'imm12'),
-    'fsqrt_s': ([], 'fsqrt.s {}, {}', 'frd', 'frs1'),
+    'fsw': ([
+        ('imm12hl(ins) == 0', 'fsw [{}], {}', 'rs1', 'frs2')], 
+        'fsw [{} + {}], {}', 'rs1', 'imm12hl', 'frs2'),
     'fadd_s': ([], 'fadd.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fsub_s': ([], 'fsub.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
     'fmul_s': ([], 'fmul.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
     'fdiv_s': ([], 'fdiv.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fsqrt_s': ([], 'fsqrt.s {}, {}', 'frd', 'frs1'),
+    'fmin_s': ([], 'fmin.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fmax_s': ([], 'fmax.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
     'flt_s': ([], 'flt.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
     'feq_s': ([], 'feq.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
     'fle_s': ([], 'fle.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
@@ -257,6 +317,14 @@ def gen_print_macro(k):
                 elif vf.startswith('addr_rel '):
                     format_vars.append('pc + (sreg_t){}(ins), (int64_t)(sreg_t){}(ins)'.format(vf[9:], vf[9:]))
                     format_specs.append('0x%08llX (pc%+lld)')
+                elif vf.startswith('addr_reg_rel '):
+                    vfps = vf.split(' ')
+                    format_vars.append('reg[{}(ins)] + (sreg_t){}(ins), reg_name[{}(ins)], (int64_t)(sreg_t){}(ins)'.format(vfps[1], vfps[2], vfps[1], vfps[2]))
+                    format_specs.append('0x%08llX (%s%+lld)')
+                elif vf.startswith('addr '):
+                    vfps = vf.split(' ')
+                    format_vars.append('reg[{}(ins)], reg_name[{}(ins)]'.format(vfps[1], vfps[1]))
+                    format_specs.append('0x%08llX (%s)')
                 elif vf.startswith('shr '):
                     format_vars.append('{}(ins) >> 12'.format(vf[4:], vf[4:]))
                     format_specs.append('%lld')
@@ -289,6 +357,14 @@ def gen_print_macro(k):
             elif vf.startswith('addr_rel '):
                 format_vars.append('pc + (sreg_t){}(ins), (int64_t)(sreg_t){}(ins)'.format(vf[9:], vf[9:]))
                 format_specs.append('0x%08llX (pc%+lld)')
+            elif vf.startswith('addr_reg_rel '):
+                    vfps = vf.split(' ')
+                    format_vars.append('reg[{}(ins)] + (sreg_t){}(ins), reg_name[{}(ins)], (int64_t)(sreg_t){}(ins)'.format(vfps[1], vfps[2], vfps[1], vfps[2]))
+                    format_specs.append('0x%08llX (%s%+lld)')
+            elif vf.startswith('addr '):
+                vfps = vf.split(' ')
+                format_vars.append('reg[{}(ins)], reg_name[{}(ins)]'.format(vfps[1], vfps[1]))
+                format_specs.append('0x%08llX (%s)')
             elif vf.startswith('shr '):
                 format_vars.append('{}(ins) >> 12'.format(vf[4:], vf[4:]))
                 format_specs.append('%lld')
@@ -612,7 +688,7 @@ enum {
     ISA_EXT_F = ISA_EXT('F') | ISA_EXT_ZICSR,
 };
 
-constexpr uint64_t RV_32GC = ISA_BASE_32I | ISA_EXT('F') | ISA_EXT('C');
+constexpr uint64_t RV_32GC = ISA_BASE_32I | ISA_EXT('F') | ISA_EXT('C') | ISA_EXT('M') | ISA_EXT('A') | ISA_EXT_ZIFENCEI;
 
 template<int xlen>
 struct RegType {
@@ -661,6 +737,8 @@ struct IsaData
     static constexpr bool supports_zifencei() { return _isa & ISA_EXT_ZIFENCEI; }
     static constexpr bool supports_zfh() { return _isa & ISA_EXT_ZFH; }
 
+    static constexpr bool is_embedded() { return supports_ext('E'); }
+
     static constexpr int flen() { if(!supports_float()) return 0; else if(supports_ext('D')) return 64; else return 32; }
     
     typedef typename RegType<xlen()>::sreg_t sreg_t;
@@ -674,8 +752,35 @@ template<uint64_t _isa> constexpr bool isa_supports_ext(char c) { return IsaData
 template<uint64_t _isa> constexpr bool isa_supports_compressed() { return IsaData<_isa>::supports_compressed(); }
 
 template<uint64_t _isa>
-struct CPU
+struct BasicCPU {
+    static constexpr bool is_embedded = IsaData<_isa>::is_embedded();
+
+    typename IsaData<_isa>::ureg_t reg[is_embedded? 16: 32];
+    uint64_t pc;
+};
+
+template<class freg_t>
+struct FloatSupport { freg_t freg[32]; };
+
+template<> struct FloatSupport<void> { float freg[0]; };
+
+template<bool csr_support>
+struct CSRSupport { uint64_t csrs[4096]; };
+
+template<> struct CSRSupport<false> { uint64_t csrs[0]; };
+
+template<uint64_t _isa>
+struct CPU:
+    public BasicCPU<_isa>,
+    public FloatSupport<typename IsaData<_isa>::freg_t>,
+    public CSRSupport<IsaData<_isa>::supports_zicsr()>
 {
+    using BasicCPU<_isa>::is_embedded;
+    using BasicCPU<_isa>::reg;
+    using BasicCPU<_isa>::pc;
+    using FloatSupport<typename IsaData<_isa>::freg_t>::freg;
+    using CSRSupport<IsaData<_isa>::supports_zicsr()>::csrs;
+
     using ureg_t = typename IsaData<_isa>::ureg_t;
     using sreg_t = typename IsaData<_isa>::sreg_t;
     using freg_t = typename IsaData<_isa>::freg_t;
@@ -685,6 +790,7 @@ struct CPU
     enum err_t {
         OK,
         ILLEGAL_INSTRUCTION,
+        UNIMPLEMENTED_INSTRUCTION,
         MISALIGNED_INSTRUCTION,
         ECALL,
         EBREAK,
@@ -693,11 +799,11 @@ struct CPU
         MISC_ERR
     };
 
-    ureg_t reg[32];
-    uint64_t pc;
+    // ureg_t reg[32];
+    // uint64_t pc;
 
-    freg_t freg[32];
-    uint64_t csrs[4096];
+    // freg_t freg[32];
+    // uint64_t csrs[4096];
     
     enum {
         PRIV_USER,
@@ -730,6 +836,11 @@ struct CPU
 
 csr_str = '''
     ureg_t load_csr(uint32_t address) { 
+        int req_priv = (int)extract_bits_u<9, 8>(address);
+        if(priv < req_priv) {
+            // TODO: Have CSR access message.
+            return ~0;
+        }
         switch(address & 0xfff) {
 '''
 
@@ -747,6 +858,11 @@ csr_str += '''            default:
     }
     
     void store_csr(uint32_t address, uint64_t value) {
+        int req_priv = (int)extract_bits_u<9, 8>(address);
+        if(priv < req_priv) {
+            // TODO: Have CSR access message.
+            return;
+        }
         switch(address & 0xfff) {
 '''
 
@@ -930,7 +1046,7 @@ for k, v in x.items():
     #     cstr += (spc * 1) + '// {}\n'.format(i)
     hstr += (spc*2) + gen_print_macro(k) + ';\n'
     if k not in macros.keys():
-        hstr += (spc*2) + 'return ILLEGAL_INSTRUCTION;\n'.format(k.upper())
+        hstr += (spc*2) + 'return UNIMPLEMENTED_INSTRUCTION;\n'
     else:
         for ln in macros[k].splitlines():
             hstr += (spc*2) + '{}\n'.format(ln)

@@ -13,11 +13,12 @@ DEPS := $(OBJS:.o=.d)
 
 CCFLAGS = -MMD -O2 -std=c99
 CXXFLAGS = -MMD -O2 -std=c++17
+LDFLAGS = -O2
 
 all: $(NAME).exe
 
 $(NAME).exe: src/riscv.hpp $(OBJS) 
-	$(CXX) -o $@ $^
+	$(CXX) -o $@ $(LDFLAGS) $^
 
 -include $(DEPS)
 
