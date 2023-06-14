@@ -17,8 +17,8 @@ void load_program(riscv::DRAM& dram) {
     exit(-1);
 }
 
-// rv32ifc_zicsr
-constexpr uint64_t isa = riscv::ISA_BASE_32I | ISA_EXT('C') | ISA_EXT('F') | riscv::ISA_EXT_ZICSR;
+// rv64ifc_zicsr
+constexpr uint64_t isa = riscv::ISA_BASE_64I | ISA_EXT('C') | ISA_EXT('F') | riscv::ISA_EXT_ZICSR;
 using cpu_t = riscv::CPU<isa>;
 
 cpu_t::err_t ecall(cpu_t& cpu) {
