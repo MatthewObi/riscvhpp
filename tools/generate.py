@@ -52,11 +52,22 @@ macros = {
     'auipc': 'reg[rd(ins)] = (ureg_t)(pc + (sreg_t)imm20(ins));\npc += 4;\nreturn OK;',
     'jal': 'reg[rd(ins)] = pc + 4;\npc = (pc + ((int64_t)jimm20(ins) << 1));\nreturn OK;',
     'jalr': 'reg[rd(ins)] = pc + 4;\npc = (reg[rs1(ins)] + ((int64_t)imm12(ins) << 1));\nreturn OK;',
+    'mul': 'reg[rd(ins)] = (sreg_t)(reg[rs1(ins)] * reg[rs2(ins)]);\npc += 4;\nreturn OK;',
+    'mulw': 'reg[rd(ins)] = (sreg_t)(int32_t)(reg[rs1(ins)] * reg[rs2(ins)]);\npc += 4;\nreturn OK;',
+    'div': 'sreg_t a = (sreg_t)reg[rs1(ins)];\nsreg_t b = (sreg_t)reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = UINT64_MAX;\nelse if(a == INT64_MIN && b == -1)\n    reg[rd(ins)] = a;\nelse\n    reg[rd(ins)] = (sreg_t)(a / b);\npc += 4;\nreturn OK;',
+    'divu': 'ureg_t a = reg[rs1(ins)];\nureg_t b = reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = UINT64_MAX;\nelse\n    reg[rd(ins)] = (sreg_t)(a / b);\npc += 4;\nreturn OK;',
+    'divw': 'sreg_t a = (sreg_t)(int32_t)reg[rs1(ins)];\nsreg_t b = (sreg_t)(int32_t)reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = UINT64_MAX;\nelse\n    reg[rd(ins)] = (sreg_t)(int32_t)(a / b);\npc += 4;\nreturn OK;',
+    'divuw': 'ureg_t a = (ureg_t)(uint32_t)reg[rs1(ins)];\nureg_t b = (ureg_t)(uint32_t)reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = UINT64_MAX;\nelse\n    reg[rd(ins)] = (sreg_t)(int32_t)(a / b);\npc += 4;\nreturn OK;',
+    'rem': 'sreg_t a = (sreg_t)reg[rs1(ins)];\nsreg_t b = (sreg_t)reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = (sreg_t)a;\nelse if(a == INT64_MIN && b == -1)\n    reg[rd(ins)] = 0;\nelse\n    reg[rd(ins)] = (sreg_t)(a % b);\npc += 4;\nreturn OK;',
+    'remu': 'ureg_t a = reg[rs1(ins)];\nureg_t b = reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = (sreg_t)a;\nelse\n    reg[rd(ins)] = (sreg_t)(a % b);\npc += 4;\nreturn OK;',
+    'remw': 'sreg_t a = (sreg_t)(int32_t)reg[rs1(ins)];\nsreg_t b = (sreg_t)(int32_t)reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = (sreg_t)(int32_t)reg[rs1(ins)];\nelse\n    reg[rd(ins)] = (sreg_t)(int32_t)(a % b);\npc += 4;\nreturn OK;',
+    'remuw': 'ureg_t a = (ureg_t)(uint32_t)reg[rs1(ins)];\nureg_t b = (ureg_t)(uint32_t)reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = (sreg_t)(int32_t)reg[rs1(ins)];\nelse\n    reg[rd(ins)] = (sreg_t)(int32_t)(a % b);\npc += 4;\nreturn OK;',
     'c_lwsp' : 'reg[rd(ins)] = (sreg_t)(int32_t)load(reg[REG_SP] + (ureg_t)c_uimm8sphl(ins), 32);\npc += 2;\nreturn OK;',
     'c_flwsp' : 'freg[rd(ins)] = bitcast<float>((uint32_t)load(reg[REG_SP] + (ureg_t)c_uimm8sphl(ins), 32));\npc += 2;\nreturn OK;',
     'c_ldsp' : 'reg[rd(ins)] = (sreg_t)(int64_t)load(reg[REG_SP] + (ureg_t)c_uimm9sphl(ins), 32);\npc += 2;\nreturn OK;',
     'c_fldsp' : 'freg[rd(ins)] = bitcast<double>((uint64_t)load(reg[REG_SP] + (ureg_t)c_uimm9sphl(ins), 64));\npc += 2;\nreturn OK;',
     'c_lw' : 'reg[rd_p(ins)] = (sreg_t)(int32_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32);\npc += 2;\nreturn OK;',
+    'c_flw' : 'freg[rd_p(ins)] = bitcast<float>((uint32_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32));\npc += 2;\nreturn OK;',
     'c_ld' : 'reg[rd_p(ins)] = (sreg_t)(int64_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm8hl(ins), 64);\npc += 2;\nreturn OK;',
     'c_sw' : 'store(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32, (uint32_t)reg[rs2_p(ins)]);\npc += 2;\nreturn OK;',
     'c_swsp' : 'store(reg[REG_SP] + (ureg_t)c_uimm8sp_s(ins), 32, (uint32_t)reg[c_rs2(ins)]);\npc += 2;\nreturn OK;',
@@ -79,22 +90,31 @@ macros = {
     'c_li' : 'reg[rd(ins)] = (sreg_t)c_imm6hl(ins);\npc += 2;\nreturn OK;',
     'c_lui' : 'reg[rd(ins)] = (sreg_t)c_nzimm18hl(ins);\npc += 2;\nreturn OK;',
     'flw': 'freg[rd(ins)] = bitcast<float>((uint32_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 32));\npc += 4;\nreturn OK;',
+    'fld': 'freg[rd(ins)] = bitcast<double>((uint64_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 64));\npc += 4;\nreturn OK;',
     'fsw': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 32, bitcast<uint32_t>((float)freg[rs2(ins)]));\npc += 4;\nreturn OK;',
-    'fsgnj_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], false, false);\npc += 4;\nreturn OK;',
-    'fsgnjn_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], true, false);\npc += 4;\nreturn OK;',
-    'fsgnjx_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], false, true);\npc += 4;\nreturn OK;',
+    'fsd': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 64, bitcast<uint64_t>((double)freg[rs2(ins)]));\npc += 4;\nreturn OK;',
     'fadd_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] + (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
     'fsub_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] - (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
     'fmul_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] * (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
-    'fdiv_s': 'if((float)freg[rs2(ins)] == 0.f) {\n    return DIV_BY_ZERO;\n}\nfreg[rd(ins)] = (float)freg[rs1(ins)] / (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
+    'fdiv_s': 'if((float)freg[rs2(ins)] == 0.f) {\n    store_csr(CSR_FFLAGS, load_csr(CSR_FFLAGS) | (1 << 3));\n    freg[rd(ins)] = nanf("");\n    return OK;\n}\nfreg[rd(ins)] = (float)freg[rs1(ins)] / (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
     'fsqrt_s': 'freg[rd(ins)] = sqrtf(freg[rs1(ins)]);\npc += 4;\nreturn OK;',
     'fmin_s': 'freg[rd(ins)] = fminf((float)freg[rs1(ins)], (float)freg[rs2(ins)]);\npc += 4;\nreturn OK;',
     'fmax_s': 'freg[rd(ins)] = fmaxf((float)freg[rs1(ins)], (float)freg[rs2(ins)]);\npc += 4;\nreturn OK;',
+    'fmadd_s': 'freg[rd(ins)] = ((float)freg[rs1(ins)] * (float)freg[rs2(ins)]) + (float)freg[rs3(ins)];\npc += 4;\nreturn OK;',
+    'fmsub_s': 'freg[rd(ins)] = ((float)freg[rs1(ins)] * (float)freg[rs2(ins)]) - (float)freg[rs3(ins)];\npc += 4;\nreturn OK;',
+    'fnmsub_s': 'freg[rd(ins)] = -((float)freg[rs1(ins)] * (float)freg[rs2(ins)]) + (float)freg[rs3(ins)];\npc += 4;\nreturn OK;',
+    'fnmadd_s': 'freg[rd(ins)] = -((float)freg[rs1(ins)] * (float)freg[rs2(ins)]) - (float)freg[rs3(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_w_s': 'reg[rd(ins)] = (sreg_t)(int32_t)freg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_s_w': 'freg[rd(ins)] = (float)reg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fsgnj_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], false, false);\npc += 4;\nreturn OK;',
+    'fsgnjn_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], true, false);\npc += 4;\nreturn OK;',
+    'fsgnjx_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], false, true);\npc += 4;\nreturn OK;',
+    'fmv_x_w': 'reg[rd(ins)] = (sreg_t)bitcast<int32_t>((float)freg[rs1(ins)]);\npc += 4;\nreturn OK;',
+    'fmv_w_x': 'freg[rd(ins)] = bitcast<float>((uint32_t)reg[rs1(ins)]);\npc += 4;\nreturn OK;',
     'flt_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] < (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
     'feq_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] == (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
     'fle_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] <= (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
-    'fcvt_w_s': 'reg[rd(ins)] = (sreg_t)(int32_t)freg[rs1(ins)];\npc += 4;\nreturn OK;',
-    'fcvt_s_w': 'freg[rd(ins)] = (float)reg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fclass_s': 'reg[rd(ins)] = fclass((float)freg[rs1(ins)]);\npc += 4;\nreturn OK;',
     'csrrw': 'ureg_t value = reg[rs1(ins)];\nif(rd(ins) != 0) reg[rd(ins)] = load_csr(csr(ins));\nstore_csr(csr(ins), value);\npc += 4;\nreturn OK;',
     'csrrs': 'ureg_t value = reg[rs1(ins)];\nreg[rd(ins)] = load_csr(csr(ins));\nif(rs1(ins) != 0) store_csr(csr(ins), reg[rd(ins)] | value);\npc += 4;\nreturn OK;',
     'csrrc': 'ureg_t value = reg[rs1(ins)];\nreg[rd(ins)] = load_csr(csr(ins));\nif(rs1(ins) != 0) store_csr(csr(ins), reg[rd(ins)] & ~value);\npc += 4;\nreturn OK;',
@@ -246,6 +266,16 @@ print_macros = {
         ('rd(ins) == 0', 'jr {}', 'addr_reg_rel rs1 imm12'),
         ('rs1(ins) == 0', 'jalr {}, {}', 'rd', 'addr rs1')], 
         'jalr {}, {}', 'rd', 'addr_reg_rel rs1 imm12'),
+    'mul': ([], 'mul {}, {}, {}', 'rd', 'rs1', 'rs2'),
+    'mulw': ([], 'mulw {}, {}, {}', 'rd', 'rs1', 'rs2'),
+    'div': ([], 'div {}, {}, {}', 'rd', 'rs1', 'rs2'),
+    'divu': ([], 'divu {}, {}, {}', 'rd', 'rs1', 'rs2'),
+    'divw': ([], 'divw {}, {}, {}', 'rd', 'rs1', 'rs2'),
+    'divuw': ([], 'divuw {}, {}, {}', 'rd', 'rs1', 'rs2'),
+    'rem': ([], 'rem {}, {}, {}', 'rd', 'rs1', 'rs2'),
+    'remu': ([], 'remu {}, {}, {}', 'rd', 'rs1', 'rs2'),
+    'remw': ([], 'remw {}, {}, {}', 'rd', 'rs1', 'rs2'),
+    'remuw': ([], 'remuw {}, {}, {}', 'rd', 'rs1', 'rs2'),
     'flw': ([
         ('imm12(ins) == 0', 'flw {}, [{}]', 'frd', 'rs1')], 
         'flw {}, [{} + {}]', 'frd', 'rs1', 'imm12'),
@@ -259,9 +289,12 @@ print_macros = {
     'fsqrt_s': ([], 'fsqrt.s {}, {}', 'frd', 'frs1'),
     'fmin_s': ([], 'fmin.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
     'fmax_s': ([], 'fmax.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
-    'flt_s': ([], 'flt.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
-    'feq_s': ([], 'feq.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
-    'fle_s': ([], 'fle.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
+    'fmadd_s': ([], 'fmadd.s {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
+    'fmsub_s': ([], 'fmsub.s {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
+    'fnmsub_s': ([], 'fnmsub.s {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
+    'fnmadd_s': ([], 'fnmadd.s {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
+    'fcvt_w_s': ([], 'fcvt.w.s {}, {}, {}', 'rd', 'frs1', 'rm'),
+    'fcvt_s_w': ([], 'fcvt.s.w {}, {}, {}', 'frd', 'rs1', 'rm'),
     'fsgnj_s': ([
         ('rs1(ins) == rs2(ins)', 'fmv.s {}, {}', 'frd', 'frs1')], 
         'fsgnj.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
@@ -271,8 +304,12 @@ print_macros = {
     'fsgnjx_s': ([
         ('rs1(ins) == rs2(ins)', 'fabs.s {}, {}', 'frd', 'frs1')], 
         'fsgnjx.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
-    'fcvt_w_s': ([], 'fcvt.w.s {}, {}, {}', 'rd', 'frs1', 'rm'),
-    'fcvt_s_w': ([], 'fcvt.s.w {}, {}, {}', 'frd', 'rs1', 'rm'),
+    'fmv_x_w': ([], 'fmv.x.w {}, {}', 'rd', 'frs1'),
+    'fmv_w_x': ([], 'fmv.w.x {}, {}', 'frd', 'rs1'),
+    'flt_s': ([], 'flt.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
+    'feq_s': ([], 'feq.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
+    'fle_s': ([], 'fle.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
+    'fclass_s': ([], 'fclass.s {}, {}', 'rd', 'frs1'),
     'csrrw': ([
         ('rd(ins) == 0', 'csrw {}, {}', 'csr', 'rs1')], 
         'csrrw {}, {}, {}', 'rd', 'csr', 'rs1'),
@@ -358,9 +395,9 @@ def gen_print_macro(k):
                 format_vars.append('pc + (sreg_t){}(ins), (int64_t)(sreg_t){}(ins)'.format(vf[9:], vf[9:]))
                 format_specs.append('0x%08llX (pc%+lld)')
             elif vf.startswith('addr_reg_rel '):
-                    vfps = vf.split(' ')
-                    format_vars.append('reg[{}(ins)] + (sreg_t){}(ins), reg_name[{}(ins)], (int64_t)(sreg_t){}(ins)'.format(vfps[1], vfps[2], vfps[1], vfps[2]))
-                    format_specs.append('0x%08llX (%s%+lld)')
+                vfps = vf.split(' ')
+                format_vars.append('reg[{}(ins)] + (sreg_t){}(ins), reg_name[{}(ins)], (int64_t)(sreg_t){}(ins)'.format(vfps[1], vfps[2], vfps[1], vfps[2]))
+                format_specs.append('0x%08llX (%s%+lld)')
             elif vf.startswith('addr '):
                 vfps = vf.split(' ')
                 format_vars.append('reg[{}(ins)], reg_name[{}(ins)]'.format(vfps[1], vfps[1]))
@@ -389,6 +426,7 @@ hstr = '''// This file was generated using riscvhpp (https://github.com/MatthewO
 #include <stdio.h>
 #include <memory.h>
 #include <math.h>
+#include <float.h>
 #include <time.h>
 #include "encoding.out.h"
 
@@ -651,6 +689,25 @@ float sgnj32(float x, float y, bool neg, bool xr) {
     uint32_t a = bitcast<uint32_t>(x);
     uint32_t b = bitcast<uint32_t>(y);
     return bitcast<float>((a & ~F32_SIGN) | ((((xr) ? a : (neg) ? F32_SIGN : 0) ^ b) & F32_SIGN));
+}
+
+int fclass(float f) {
+    bool is_neg = ((*(uint32_t*)&f) & (1 << 31))? 1: 0;
+    bool is_inf = isinf(f);
+    bool is_normal = isnormal(f);
+    bool is_subnormal = abs(f) < FLT_MIN;
+    bool is_nan = isnanf(f);
+    bool is_snan = ((*(uint32_t*)&f) & 1)? 1: 0;
+    return ((is_neg && is_inf) << 0)
+        |  ((is_neg && is_normal) << 1)
+        |  ((is_neg && is_subnormal) << 2)
+        |  ((is_neg && f == 0.f) << 3)
+        |  ((!is_neg && f == 0.f) << 4)
+        |  ((!is_neg && is_subnormal) << 5)
+        |  ((!is_neg && is_normal) << 6)
+        |  ((!is_neg && is_inf) << 7)
+        |  ((is_nan && !is_snan) << 8)
+        |  ((is_nan && is_snan) << 9);
 }
 '''
 
