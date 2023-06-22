@@ -17,8 +17,8 @@ void load_program(riscv::DRAM& dram) {
     exit(-1);
 }
 
-// rv64ifc_zicsr
-constexpr uint64_t isa = riscv::ISA_BASE_64I | ISA_EXT('C') | ISA_EXT('F') | riscv::ISA_EXT_ZICSR;
+// rv64ifcm_zicsr
+constexpr uint64_t isa = riscv::ISA_BASE_64I | ISA_EXT('C') | ISA_EXT('F') | ISA_EXT('M') | riscv::ISA_EXT_ZICSR;
 using cpu_t = riscv::CPU<isa>;
 
 cpu_t::err_t ecall(cpu_t& cpu) {
@@ -26,7 +26,7 @@ cpu_t::err_t ecall(cpu_t& cpu) {
     {
         case 64:
         {
-            printf("Write 0x%08llx, %llu chars\n", cpu.reg[REG_A(1)], cpu.reg[REG_A(2)]);
+            // printf("Write 0x%08llx, %llu chars\n", cpu.reg[REG_A(1)], cpu.reg[REG_A(2)]);
             char dest[cpu.reg[REG_A(2)] + 1];
             for(cpu_t::sreg_t i = 0; i < cpu.reg[REG_A(2)]; ++i) {
                 dest[i] = cpu.load(cpu.reg[REG_A(1)] + i, 8);

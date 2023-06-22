@@ -70,17 +70,22 @@ macros = {
     'remu': 'ureg_t a = reg[rs1(ins)];\nureg_t b = reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = (sreg_t)a;\nelse\n    reg[rd(ins)] = (sreg_t)(a % b);\npc += 4;\nreturn OK;',
     'remw': 'sreg_t a = (sreg_t)(int32_t)reg[rs1(ins)];\nsreg_t b = (sreg_t)(int32_t)reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = (sreg_t)(int32_t)reg[rs1(ins)];\nelse\n    reg[rd(ins)] = (sreg_t)(int32_t)(a % b);\npc += 4;\nreturn OK;',
     'remuw': 'ureg_t a = (ureg_t)(uint32_t)reg[rs1(ins)];\nureg_t b = (ureg_t)(uint32_t)reg[rs2(ins)];\nif(b == 0)\n    reg[rd(ins)] = (sreg_t)(int32_t)reg[rs1(ins)];\nelse\n    reg[rd(ins)] = (sreg_t)(int32_t)(a % b);\npc += 4;\nreturn OK;',
+    'c_lw' : 'reg[rd_p(ins)] = (sreg_t)(int32_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32);\npc += 2;\nreturn OK;',
+    'c_flw' : 'freg[rd_p(ins)] = bitcast<float>((uint32_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32));\npc += 2;\nreturn OK;',
+    'c_ld' : 'reg[rd_p(ins)] = (sreg_t)(int64_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm8hl(ins), 64);\npc += 2;\nreturn OK;',
+    'c_fld' : 'freg[rd_p(ins)] = bitcast<double>((uint64_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm8hl(ins), 64));\npc += 2;\nreturn OK;',
+    'c_sw' : 'store(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32, (uint32_t)reg[rs2_p(ins)]);\npc += 2;\nreturn OK;',
+    'c_fsw' : 'store(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32, bitcast<uint32_t>((float)freg[rs2_p(ins)]));\npc += 2;\nreturn OK;',
+    'c_sd' : 'store(reg[rs1_p(ins)] + (ureg_t)c_uimm8hl(ins), 64, (uint64_t)reg[rs2_p(ins)]);\npc += 2;\nreturn OK;',
+    'c_fsd' : 'store(reg[rs1_p(ins)] + (ureg_t)c_uimm8hl(ins), 64, bitcast<uint64_t>((double)freg[rs2_p(ins)]));\npc += 2;\nreturn OK;',
     'c_lwsp' : 'reg[rd(ins)] = (sreg_t)(int32_t)load(reg[REG_SP] + (ureg_t)c_uimm8sphl(ins), 32);\npc += 2;\nreturn OK;',
     'c_flwsp' : 'freg[rd(ins)] = bitcast<float>((uint32_t)load(reg[REG_SP] + (ureg_t)c_uimm8sphl(ins), 32));\npc += 2;\nreturn OK;',
     'c_ldsp' : 'reg[rd(ins)] = (sreg_t)(int64_t)load(reg[REG_SP] + (ureg_t)c_uimm9sphl(ins), 32);\npc += 2;\nreturn OK;',
     'c_fldsp' : 'freg[rd(ins)] = bitcast<double>((uint64_t)load(reg[REG_SP] + (ureg_t)c_uimm9sphl(ins), 64));\npc += 2;\nreturn OK;',
-    'c_lw' : 'reg[rd_p(ins)] = (sreg_t)(int32_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32);\npc += 2;\nreturn OK;',
-    'c_flw' : 'freg[rd_p(ins)] = bitcast<float>((uint32_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32));\npc += 2;\nreturn OK;',
-    'c_ld' : 'reg[rd_p(ins)] = (sreg_t)(int64_t)load(reg[rs1_p(ins)] + (ureg_t)c_uimm8hl(ins), 64);\npc += 2;\nreturn OK;',
-    'c_sw' : 'store(reg[rs1_p(ins)] + (ureg_t)c_uimm7hl(ins), 32, (uint32_t)reg[rs2_p(ins)]);\npc += 2;\nreturn OK;',
     'c_swsp' : 'store(reg[REG_SP] + (ureg_t)c_uimm8sp_s(ins), 32, (uint32_t)reg[c_rs2(ins)]);\npc += 2;\nreturn OK;',
     'c_fswsp' : 'store(reg[REG_SP] + (ureg_t)c_uimm8sp_s(ins), 32, bitcast<uint32_t>((float)freg[c_rs2(ins)]));\npc += 2;\nreturn OK;',
     'c_sdsp' : 'store(reg[REG_SP] + (ureg_t)c_uimm9sp_s(ins), 64, (uint64_t)reg[c_rs2(ins)]);\npc += 2;\nreturn OK;',
+    'c_fsdsp' : 'store(reg[REG_SP] + (ureg_t)c_uimm9sp_s(ins), 64, bitcast<uint64_t>((double)freg[c_rs2(ins)]));\npc += 2;\nreturn OK;',
     'c_mv' : 'reg[rd(ins)] = reg[c_rs2_n0(ins)];\npc += 2;\nreturn OK;',
     'c_add': 'reg[rd(ins)] += (sreg_t)reg[c_rs2_n0(ins)];\npc += 2;\nreturn OK;',
     'c_addi': 'reg[rd_rs1_n0(ins)] += (sreg_t)c_nzimm6hl(ins);\npc += 2;\nreturn OK;',
@@ -105,10 +110,9 @@ macros = {
     'c_bnez' : 'if(reg[rs1_p(ins)] != 0)\n    pc += (sreg_t)c_bimm9hl(ins);\nelse\n    pc += 2;\nreturn OK;',
     'c_li' : 'reg[rd(ins)] = (sreg_t)c_imm6hl(ins);\npc += 2;\nreturn OK;',
     'c_lui' : 'reg[rd(ins)] = (sreg_t)c_nzimm18hl(ins);\npc += 2;\nreturn OK;',
+    'c_nop' : 'pc += 2;\nreturn OK;',
     'flw': 'freg[rd(ins)] = bitcast<float>((uint32_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 32));\npc += 4;\nreturn OK;',
-    'fld': 'freg[rd(ins)] = bitcast<double>((uint64_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 64));\npc += 4;\nreturn OK;',
     'fsw': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 32, bitcast<uint32_t>((float)freg[rs2(ins)]));\npc += 4;\nreturn OK;',
-    'fsd': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 64, bitcast<uint64_t>((double)freg[rs2(ins)]));\npc += 4;\nreturn OK;',
     'fadd_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] + (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
     'fsub_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] - (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
     'fmul_s': 'freg[rd(ins)] = (float)freg[rs1(ins)] * (float)freg[rs2(ins)];\npc += 4;\nreturn OK;',
@@ -120,8 +124,14 @@ macros = {
     'fmsub_s': 'freg[rd(ins)] = ((float)freg[rs1(ins)] * (float)freg[rs2(ins)]) - (float)freg[rs3(ins)];\npc += 4;\nreturn OK;',
     'fnmsub_s': 'freg[rd(ins)] = -((float)freg[rs1(ins)] * (float)freg[rs2(ins)]) + (float)freg[rs3(ins)];\npc += 4;\nreturn OK;',
     'fnmadd_s': 'freg[rd(ins)] = -((float)freg[rs1(ins)] * (float)freg[rs2(ins)]) - (float)freg[rs3(ins)];\npc += 4;\nreturn OK;',
-    'fcvt_w_s': 'reg[rd(ins)] = (sreg_t)(int32_t)freg[rs1(ins)];\npc += 4;\nreturn OK;',
-    'fcvt_s_w': 'freg[rd(ins)] = (float)reg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_w_s': 'reg[rd(ins)] = (sreg_t)(int32_t)(float)freg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_wu_s': 'reg[rd(ins)] = (sreg_t)(uint32_t)(float)freg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_l_s': 'reg[rd(ins)] = (sreg_t)(int64_t)(float)freg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_lu_s': 'reg[rd(ins)] = (sreg_t)(uint64_t)(float)freg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_s_w': 'freg[rd(ins)] = (float)(int32_t)reg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_s_wu': 'freg[rd(ins)] = (float)(uint32_t)reg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_s_l': 'freg[rd(ins)] = (float)(int64_t)reg[rs1(ins)];\npc += 4;\nreturn OK;',
+    'fcvt_s_lu': 'freg[rd(ins)] = (float)(uint64_t)reg[rs1(ins)];\npc += 4;\nreturn OK;',
     'fsgnj_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], false, false);\npc += 4;\nreturn OK;',
     'fsgnjn_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], true, false);\npc += 4;\nreturn OK;',
     'fsgnjx_s': 'freg[rd(ins)] = sgnj32(freg[rs1(ins)], freg[rs2(ins)], false, true);\npc += 4;\nreturn OK;',
@@ -131,6 +141,27 @@ macros = {
     'feq_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] == (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
     'fle_s': 'reg[rd(ins)] = ((float)freg[rs1(ins)] <= (float)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
     'fclass_s': 'reg[rd(ins)] = fclass((float)freg[rs1(ins)]);\npc += 4;\nreturn OK;',
+    'fld': 'freg[rd(ins)] = bitcast<double>((uint64_t)load(reg[rs1(ins)] + (sreg_t)imm12(ins), 64));\npc += 4;\nreturn OK;',
+    'fsd': 'store(reg[rs1(ins)] + (sreg_t)imm12hl(ins), 64, bitcast<uint64_t>((double)freg[rs2(ins)]));\npc += 4;\nreturn OK;',
+    'fadd_d': 'freg[rd(ins)] = (double)freg[rs1(ins)] + (double)freg[rs2(ins)];\npc += 4;\nreturn OK;',
+    'fsub_d': 'freg[rd(ins)] = (double)freg[rs1(ins)] - (double)freg[rs2(ins)];\npc += 4;\nreturn OK;',
+    'fmul_d': 'freg[rd(ins)] = (double)freg[rs1(ins)] * (double)freg[rs2(ins)];\npc += 4;\nreturn OK;',
+    'fdiv_d': 'if((double)freg[rs2(ins)] == 0.f) {\n    store_csr(CSR_FFLAGS, load_csr(CSR_FFLAGS) | (1 << 3));\n    freg[rd(ins)] = nan("");\n    pc += 4;\n    return OK;\n}\nfreg[rd(ins)] = (double)freg[rs1(ins)] / (double)freg[rs2(ins)];\npc += 4;\nreturn OK;',
+    'fsqrt_d': 'freg[rd(ins)] = sqrtd(freg[rs1(ins)]);\npc += 4;\nreturn OK;',
+    'fmin_d': 'freg[rd(ins)] = fminf((double)freg[rs1(ins)], (double)freg[rs2(ins)]);\npc += 4;\nreturn OK;',
+    'fmax_d': 'freg[rd(ins)] = fmaxf((double)freg[rs1(ins)], (double)freg[rs2(ins)]);\npc += 4;\nreturn OK;',
+    'fmadd_d': 'freg[rd(ins)] = ((double)freg[rs1(ins)] * (double)freg[rs2(ins)]) + (double)freg[rs3(ins)];\npc += 4;\nreturn OK;',
+    'fmsub_d': 'freg[rd(ins)] = ((double)freg[rs1(ins)] * (double)freg[rs2(ins)]) - (double)freg[rs3(ins)];\npc += 4;\nreturn OK;',
+    'fnmsub_d': 'freg[rd(ins)] = -((double)freg[rs1(ins)] * (double)freg[rs2(ins)]) + (double)freg[rs3(ins)];\npc += 4;\nreturn OK;',
+    'fnmadd_d': 'freg[rd(ins)] = -((double)freg[rs1(ins)] * (double)freg[rs2(ins)]) - (double)freg[rs3(ins)];\npc += 4;\nreturn OK;',
+    'fsgnj_d': 'freg[rd(ins)] = sgnj64(freg[rs1(ins)], freg[rs2(ins)], false, false);\npc += 4;\nreturn OK;',
+    'fsgnjn_d': 'freg[rd(ins)] = sgnj64(freg[rs1(ins)], freg[rs2(ins)], true, false);\npc += 4;\nreturn OK;',
+    'fsgnjx_d': 'freg[rd(ins)] = sgnj64(freg[rs1(ins)], freg[rs2(ins)], false, true);\npc += 4;\nreturn OK;',
+    'fmv_x_d': 'reg[rd(ins)] = (sreg_t)bitcast<int64_t>((double)freg[rs1(ins)]);\npc += 4;\nreturn OK;',
+    'fmv_d_x': 'freg[rd(ins)] = bitcast<double>((uint64_t)reg[rs1(ins)]);\npc += 4;\nreturn OK;',
+    'flt_d': 'reg[rd(ins)] = ((double)freg[rs1(ins)] < (double)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
+    'feq_d': 'reg[rd(ins)] = ((double)freg[rs1(ins)] == (double)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
+    'fle_d': 'reg[rd(ins)] = ((double)freg[rs1(ins)] <= (double)freg[rs2(ins)])? 1: 0;\npc += 4;\nreturn OK;',
     'csrrw': 'ureg_t value = reg[rs1(ins)];\nif(rd(ins) != 0) reg[rd(ins)] = load_csr(csr(ins));\nstore_csr(csr(ins), value);\npc += 4;\nreturn OK;',
     'csrrs': 'ureg_t value = reg[rs1(ins)];\nreg[rd(ins)] = load_csr(csr(ins));\nif(rs1(ins) != 0) store_csr(csr(ins), reg[rd(ins)] | value);\npc += 4;\nreturn OK;',
     'csrrc': 'ureg_t value = reg[rs1(ins)];\nreg[rd(ins)] = load_csr(csr(ins));\nif(rs1(ins) != 0) store_csr(csr(ins), reg[rd(ins)] & ~value);\npc += 4;\nreturn OK;',
@@ -189,12 +220,24 @@ print_macros = {
     'c_flw': ([
         ('c_uimm7hl(ins) == 0', 'flw {}, [{}]', 'frd_p', 'rs1_p')], 
         'flw {}, [{} + {}]', 'frd_p', 'rs1_p', 'c_uimm7hl'),
+    'c_ld': ([
+        ('c_uimm8hl(ins) == 0', 'ld {}, [{}]', 'rd_p', 'rs1_p')], 
+        'ld {}, [{} + {}]', 'rd_p', 'rs1_p', 'c_uimm8hl'),
+    'c_fld': ([
+        ('c_uimm8hl(ins) == 0', 'fld {}, [{}]', 'frd_p', 'rs1_p')], 
+        'fld {}, [{} + {}]', 'frd_p', 'rs1_p', 'c_uimm8hl'),
     'c_sw': ([
         ('c_uimm7hl(ins) == 0', 'sw [{}], {}', 'rs1_p', 'rs2_p')], 
         'sw [{} + {}], {}', 'rs1_p', 'c_uimm7hl', 'rs2_p'),
     'c_fsw': ([
         ('c_uimm7hl(ins) == 0', 'fsw [{}], {}', 'rs1_p', 'frs2_p')], 
         'fsw [{} + {}], {}', 'rs1_p', 'c_uimm7hl', 'frs2_p'),
+    'c_sd': ([
+        ('c_uimm8hl(ins) == 0', 'sw [{}], {}', 'rs1_p', 'rs2_p')], 
+        'sw [{} + {}], {}', 'rs1_p', 'c_uimm8hl', 'rs2_p'),
+    'c_fsd': ([
+        ('c_uimm8hl(ins) == 0', 'fsw [{}], {}', 'rs1_p', 'frs2_p')], 
+        'fsw [{} + {}], {}', 'rs1_p', 'c_uimm8hl', 'frs2_p'),
     'c_lwsp': ([], 'lw {}, [sp + {}]', 'rd', 'c_uimm8sphl'),
     'c_flwsp': ([], 'flw {}, [sp + {}]', 'frd', 'c_uimm8sphl'),
     'c_ldsp': ([], 'ld {}, [sp + {}]', 'rd', 'c_uimm9sphl'),
@@ -226,6 +269,7 @@ print_macros = {
         ('c_rs1_n0(ins) == REG_RA', 'ret')], 
         'jr {}', 'c_rs1_n0'),
     'c_jal': ([], 'jal ra, {}', 'addr_rel c_imm12'),
+    'c_nop': ([], 'nop'),
     'lui':   ([], 'lui {}, {}', 'rd', 'shr imm20'),
     'auipc': ([], 'auipc {}, {}', 'rd', 'shr imm20'),
     'addi': ([
@@ -334,7 +378,13 @@ print_macros = {
     'fnmsub_s': ([], 'fnmsub.s {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
     'fnmadd_s': ([], 'fnmadd.s {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
     'fcvt_w_s': ([], 'fcvt.w.s {}, {}, {}', 'rd', 'frs1', 'rm'),
+    'fcvt_wu_s': ([], 'fcvt.wu.s {}, {}, {}', 'rd', 'frs1', 'rm'),
+    'fcvt_l_s': ([], 'fcvt.l.s {}, {}, {}', 'rd', 'frs1', 'rm'),
+    'fcvt_lu_s': ([], 'fcvt.lu.s {}, {}, {}', 'rd', 'frs1', 'rm'),
     'fcvt_s_w': ([], 'fcvt.s.w {}, {}, {}', 'frd', 'rs1', 'rm'),
+    'fcvt_s_wu': ([], 'fcvt.s.wu {}, {}, {}', 'frd', 'rs1', 'rm'),
+    'fcvt_s_l': ([], 'fcvt.s.l {}, {}, {}', 'frd', 'rs1', 'rm'),
+    'fcvt_s_lu': ([], 'fcvt.s.lu {}, {}, {}', 'frd', 'rs1', 'rm'),
     'fsgnj_s': ([
         ('rs1(ins) == rs2(ins)', 'fmv.s {}, {}', 'frd', 'frs1')], 
         'fsgnj.s {}, {}, {}', 'frd', 'frs1', 'frs2'),
@@ -350,6 +400,37 @@ print_macros = {
     'feq_s': ([], 'feq.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
     'fle_s': ([], 'fle.s {}, {}, {}', 'rd', 'frs1', 'frs2'),
     'fclass_s': ([], 'fclass.s {}, {}', 'rd', 'frs1'),
+    'fld': ([
+        ('imm12(ins) == 0', 'fld {}, [{}]', 'frd', 'rs1')], 
+        'fld {}, [{} + {}]', 'frd', 'rs1', 'imm12'),
+    'fsd': ([
+        ('imm12hl(ins) == 0', 'fsd [{}], {}', 'rs1', 'frs2')], 
+        'fsd [{} + {}], {}', 'rs1', 'imm12hl', 'frs2'),
+    'fadd_d': ([], 'fadd.d {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fsub_d': ([], 'fsub.d {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fmul_d': ([], 'fmul.d {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fdiv_d': ([], 'fdiv.d {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fsqrt_d': ([], 'fsqrt.d {}, {}', 'frd', 'frs1'),
+    'fmin_d': ([], 'fmin.d {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fmax_d': ([], 'fmax.d {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fmadd_d': ([], 'fmadd.d {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
+    'fmsub_d': ([], 'fmsub.d {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
+    'fnmsub_d': ([], 'fnmsub.d {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
+    'fnmadd_d': ([], 'fnmadd.d {}, {}, {}, {}', 'frd', 'frs1', 'frs2', 'frs3'),
+    'fsgnj_d': ([
+        ('rs1(ins) == rs2(ins)', 'fmv.d {}, {}', 'frd', 'frs1')], 
+        'fsgnj.d {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fsgnjn_d': ([
+        ('rs1(ins) == rs2(ins)', 'fneg.d {}, {}', 'frd', 'frs1')], 
+        'fsgnjn.d {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fsgnjx_d': ([
+        ('rs1(ins) == rs2(ins)', 'fabs.d {}, {}', 'frd', 'frs1')], 
+        'fsgnjx.d {}, {}, {}', 'frd', 'frs1', 'frs2'),
+    'fmv_x_d': ([], 'fmv.x.d {}, {}', 'rd', 'frs1'),
+    'fmv_d_x': ([], 'fmv.d.x {}, {}', 'frd', 'rs1'),
+    'flt_d': ([], 'flt.d {}, {}, {}', 'rd', 'frs1', 'frs2'),
+    'feq_d': ([], 'feq.d {}, {}, {}', 'rd', 'frs1', 'frs2'),
+    'fle_d': ([], 'fle.d {}, {}, {}', 'rd', 'frs1', 'frs2'),
     'csrrw': ([
         ('rd(ins) == 0', 'csrw {}, {}', 'csr', 'rs1')], 
         'csrrw {}, {}, {}', 'rd', 'csr', 'rs1'),
@@ -729,6 +810,13 @@ float sgnj32(float x, float y, bool neg, bool xr) {
     uint32_t a = bitcast<uint32_t>(x);
     uint32_t b = bitcast<uint32_t>(y);
     return bitcast<float>((a & ~F32_SIGN) | ((((xr) ? a : (neg) ? F32_SIGN : 0) ^ b) & F32_SIGN));
+}
+
+#define F64_SIGN ((uint64_t)1 << 63)
+double sgnj64(double x, double y, bool neg, bool xr) {
+    uint64_t a = bitcast<uint64_t>(x);
+    uint64_t b = bitcast<uint64_t>(y);
+    return bitcast<double>((a & ~F64_SIGN) | ((((xr) ? a : (neg) ? F64_SIGN : 0) ^ b) & F64_SIGN));
 }
 
 int fclass(float f) {
